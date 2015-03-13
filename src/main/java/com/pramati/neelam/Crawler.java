@@ -28,8 +28,7 @@ public class Crawler {
 	 * @return
 	 *    - result of crawl operation.
 	 */
-	
-	
+		
 	public void crawl(String url, String word)
 	{
 		try
@@ -40,23 +39,16 @@ public class Crawler {
 			
 			Elements linksOnPage;
 			
-			if(!word.equals("@")) 
-			linksOnPage = this.htmlDocument.select("a[href*=2014]").select("a[href*="+word+"]");
-			else
-			linksOnPage = this.htmlDocument.select("a[href*="+word+"]");
 			
-		
+			linksOnPage = this.htmlDocument.select("a[href*="+word+"]~a[href*=date]");
 			
 			for(Element link: linksOnPage)
 			{
 				
 				String str = link.absUrl("href");
-				if(!word.equals("@")){
+				
 				if(!links.contains(str) && !str.contains("?0"))
-				   this.links.add(str);}
-				else
-			     this.links.add(str);
-					
+				   this.links.add(str);
 				
 			}
 			
@@ -68,8 +60,30 @@ public class Crawler {
 			
 		}
 	}
-	
-	
+
+	public void retrieveLinks(String url)
+	{
+		
+		try{
+			Document htmlDocument = Jsoup.connect(url).get();
+			this.htmlDocument = htmlDocument;
+			Elements linksOnPage;
+			linksOnPage = this.htmlDocument.select("a[href*=@]");
+		
+			for(Element link: linksOnPage)
+			{
+			
+				String str = link.absUrl("href");
+		
+				this.links.add(str);
+			}
+		}
+		catch(Exception e)
+		{
+			System.out.println("Error while retrieving links");
+			e.printStackTrace();
+		}
+	}
 	
 	/**
 	 * Getter Method for the list containing links.

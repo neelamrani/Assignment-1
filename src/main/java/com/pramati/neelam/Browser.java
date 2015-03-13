@@ -13,10 +13,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+
+
 
 
 public class Browser {
@@ -25,27 +28,64 @@ public class Browser {
     private List<String> pagesToVisit = new LinkedList<String>();
     private List<String> emailLinks = new LinkedList<String>();
     
-   // private enum Month {JANUARY=1, FEBRUARY, MARCH, APRIL, MAY, JUNE, JULY, AUGUST, SEPTEMBER, OCTOBER, NOVEMBER, DECEMBER}
+   private enum Month {DUMMY, JANUARY, FEBRUARY, MARCH, APRIL, MAY, JUNE, JULY, AUGUST, SEPTEMBER, OCTOBER, NOVEMBER, DECEMBER}
+   public static final java.util.Properties properties = System.getProperties();
+	
+	public static final String separator = properties.get("file.separator").toString();
+	public static final String home = properties.get("user.home").toString();
+ 	
+ 	public static final String parentDirectory = home+separator+"Neelam";
+ 	
     
-    
-    /**
-     * A function returning the next URL for parsing.
+ 	/**
+ 	 * Default constructor cleaning the resulting Parent Directory.
+ 	 */
+ 	
+ 	public Browser()
+ 	{
+ 		this.cleanDirectory();
+ 	}
+ 	
+ 	
+ 	/**
+     * A Method returning the next URL for parsing.
      * It also ensures that Duplicate URLs are not allowed.
      * @return
      */
     
-    private String nextUrl()
+ 	private String nextUrl()
     {
        String nextUrl;
        do
        {
     	   nextUrl = this.pagesToVisit.remove(0);
        }while(this.pagesVisited.contains(nextUrl) && !this.pagesToVisit.isEmpty());
+      
        if(this.pagesVisited.add(nextUrl))
           return nextUrl;
           
        return null;
     }
+    
+ 	
+ 	/**
+ 	 * Method to delete existing directory.
+ 	 */
+ 	
+    private void cleanDirectory()
+    {
+    	try{
+        File file = new File(parentDirectory);
+        if(file.exists())
+    	FileUtils.deleteDirectory(file);
+    	}
+    	catch (Exception e)
+    	{
+    		System.out.println("Cannot delete directory");
+    		e.printStackTrace();
+    	}
+    }
+   
     
     /**
      * A function to perform searching/parsing of the web document.
@@ -57,44 +97,36 @@ public class Browser {
     
     public void search(String url, String searchWord)
     {
+    	
     	do
     	{
-    		
     		String currentUrl;
     		Crawler pageCrawler = new Crawler();
+    		
     		if(this.pagesToVisit.isEmpty())
     		{
-    			currentUrl = url;
-    			
+      			currentUrl = url;
+    			this.pagesVisited.add(url);
     		}
     		else
     		{
     			currentUrl = this.nextUrl();
-    			searchWord = "date?";
+    			if(currentUrl!=null)
+    			{
+    				Crawler mailCrawler = new Crawler();
+    				String path = makeDirectory(currentUrl);
+    				mailCrawler.retrieveLinks(currentUrl);
+    				this.emailLinks.addAll(mailCrawler.getLinks());
+    				writeEmails(path);
+    			}
     		}
-    		if(currentUrl!= null){
-    		pageCrawler.crawl(currentUrl, searchWord);
-    		
-    		
-    		this.pagesToVisit.addAll(pageCrawler.getLinks());}
-    		
-    		
+    		if(currentUrl!= null)
+    		{
+    			pageCrawler.crawl(currentUrl, searchWord);
+    			this.pagesToVisit.addAll(pageCrawler.getLinks());
+ 		    }
+      		
     	}while(!(this.pagesToVisit.isEmpty()));
-    	
-    																																																								
-    	this.pagesToVisit.addAll(pagesVisited);
-    	
-    	
-    	while(!pagesToVisit.isEmpty())
-    	{
-    		
-    		Crawler mailCrawler = new Crawler();
-    		String page = pagesToVisit.remove(0);
-    		String path = makeDirectory(page);
-    		mailCrawler.crawl(page, "@");
-    		this.emailLinks.addAll(mailCrawler.getLinks());
-    		writeEmails(path);
-    	}
     }
     
     /**
@@ -105,13 +137,11 @@ public class Browser {
     private void writeEmails(String dirPath)
     {
     	
-    	int count = new File(dirPath).listFiles().length;
-    	java.util.Properties properties = System.getProperties();
-    	properties.list(System.out);
-    	String separator = properties.get("file.separator").toString();
+    	int count = new File(dirPath).listFiles().length;    	
     	while(!this.emailLinks.isEmpty())
         {
-    	  try{
+    		count++;
+    		try{
     	    File emailText = new File(dirPath+separator+"email#"+count+".txt");
     	    emailText.createNewFile();
     	    if(emailText.isFile())
@@ -121,7 +151,7 @@ public class Browser {
     	    	writer.write(downloadPage(this.emailLinks.remove(0)));
     	    	writer.close();
     	    }
-    	    count++;
+    	    
     	   }
     	  catch(Exception e)
     	  {
@@ -129,9 +159,7 @@ public class Browser {
     		e.printStackTrace();
     	  }
     		
-    	}
-    	
-	
+    	}	
     }
     
     /**
@@ -142,58 +170,12 @@ public class Browser {
     
     private String makeDirectory(String pageName)
     {
-    	java.util.Properties properties = System.getProperties();
-    	properties.list(System.out);
-    	String home = properties.get("user.home").toString();
-    	String separator = properties.get("file.separator").toString();
-    	String directoryName = "Neelam";
+    	
     	String subDirectory = null;
     	int begin = pageName.indexOf("2014");
     	int month = Integer.parseInt(pageName.substring(begin+4, begin+6));
-    	switch(month)
-    	{
-    	   case 1:
-    		   subDirectory = "January";
-    		   break;
-    	   case 2:
-    		   subDirectory = "February";
-    		   break;
-    	   case 3:
-    		   subDirectory = "March";
-    		   break;
-    	   case 4:
-    		   subDirectory = "April";
-    		   break;
-    	   case 5:
-    		   subDirectory = "May";
-    		   break;
-    	   case 6:
-    		   subDirectory = "June";
-    		   break;
-    	   case 7:
-    		   subDirectory = "July";
-    		   break;
-    	   case 8:
-    		   subDirectory = "August";
-    		   break;
-    	   case 9:
-    		   subDirectory = "September";
-    		   break;
-    	   case 10:
-    		   subDirectory = "October";
-    		   break;
-    	   case 11:
-    		   subDirectory = "November";
-    		   break;
-    	   case 12:
-    		   subDirectory = "December";
-    		   break;
-    	  default:
-    		  subDirectory = ""+month;
-    		   
-    	}
-    	
-    	File directory = new File(home+separator+directoryName+separator+subDirectory);
+    	subDirectory = Month.values()[month].toString();
+        File directory = new File(parentDirectory+separator+subDirectory);
     	directory.mkdirs();
     	return directory.getAbsolutePath();
     }
@@ -207,9 +189,7 @@ public class Browser {
      private String downloadPage(String url)
      {
     	 try
-    	 {
-    		
-    		 
+    	 {	 
     		 Document email = Jsoup.connect(url).get();
     		 Elements preText = email.select("pre");
     		 StringBuffer pageBuffer = new StringBuffer(); 
@@ -231,9 +211,5 @@ public class Browser {
     	 }
     	 return null;
      }
-    
-    
-    
-    
     
 }
