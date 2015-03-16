@@ -1,19 +1,23 @@
 package com.pramati.neelam;
 
 /**
- * A Helper class containing the functions to perform HTTP requests, 
- * parsing the web pages and collecting URLs.
+ * @author Neelam Rani
+ * This is the helper class and contains the logic for crawling the given URL so that an HTTP request using Jsoup
+ * can be made and consequently the relevant hyperlinks are obtained depending on the search string provided for 
+ * links.
  */
 
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 
-public class Crawler {
+public class Crawler implements Serializable{
 	
 	
 	private List<String> links = new LinkedList<String>();
@@ -21,18 +25,18 @@ public class Crawler {
 	private Document htmlDocument;
   
 	/**
-	 * The Method to perform crawling i.e. perform HTTP request, 
-	 * validate the response and parse to collect link of valid web pages.
+	 * This Method performs crawling operation i.e. performing HTTP request, 
+	 * validating the response and parsing to collect relevant hyperlinks.
 	 * @param url
 	 *    - current URL being visited.
 	 * @return
 	 *    - result of crawl operation.
 	 */
 		
-	public void crawl(String url, String word)
+	public void crawl(String url, String word) throws Exception
 	{
-		try
-		{
+		//try
+		//{
 			
 			Document htmlDocument = Jsoup.connect(url).get();
 			this.htmlDocument = htmlDocument;
@@ -52,19 +56,24 @@ public class Crawler {
 				
 			}
 			
-		}
-		catch(Exception e)
+		//}
+		/*catch(Exception e)
 		{
 			System.out.println("Error in HTTP Request "+e);
 			e.printStackTrace();
 			
-		}
+		}*/
 	}
+	
+	/**
+	 * This method retrieves e-mail hyperlinks embeddded in the current HTML page being parsed. 
+	 * @param url - URL of current HTML page being parsed.
+	 */
 
-	public void retrieveLinks(String url)
+	public void retrieveLinks(String url) throws Exception
 	{
 		
-		try{
+		//try{
 			Document htmlDocument = Jsoup.connect(url).get();
 			this.htmlDocument = htmlDocument;
 			Elements linksOnPage;
@@ -77,18 +86,18 @@ public class Crawler {
 		
 				this.links.add(str);
 			}
-		}
-		catch(Exception e)
+		//}
+	/*	catch(Exception e)
 		{
 			System.out.println("Error while retrieving links");
 			e.printStackTrace();
-		}
+		}*/
 	}
 	
 	/**
-	 * Getter Method for the list containing links.
+	 * Getter Method for the list containing hyperlinks.
 	 * @return 
-	 *  - returns the List.
+	 *  - returns the List of hyperlinks.
 	 */
 	public List<String> getLinks()
 	{

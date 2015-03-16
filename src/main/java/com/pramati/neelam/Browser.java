@@ -1,13 +1,17 @@
 package com.pramati.neelam;
 
 /**
- * A class to perform search on the given set of URLs.
+ * @author Neelam Rani
+ * Browser is the main class for My Web Crawler which contains logic for how to fetch all relevant hyperlinks
+ * and consequently store them in appropriate directory which is created as per native operating system
+ * over which JAR is running.
  */
 
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.Serializable;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,11 +26,15 @@ import org.jsoup.select.Elements;
 
 
 
-public class Browser {
+public class Browser implements Serializable{
     
     private Set<String> pagesVisited = new LinkedHashSet<String>();
     private List<String> pagesToVisit = new LinkedList<String>();
     private List<String> emailLinks = new LinkedList<String>();
+    private String currentUrl;
+    private String path;
+    
+    
     
    private enum Month {DUMMY, JANUARY, FEBRUARY, MARCH, APRIL, MAY, JUNE, JULY, AUGUST, SEPTEMBER, OCTOBER, NOVEMBER, DECEMBER}
    public static final java.util.Properties properties = System.getProperties();
@@ -38,7 +46,7 @@ public class Browser {
  	
     
  	/**
- 	 * Default constructor cleaning the resulting Parent Directory.
+ 	 * Default constructor cleaning the email directory created during previous run.
  	 */
  	
  	public Browser()
@@ -48,9 +56,10 @@ public class Browser {
  	
  	
  	/**
-     * A Method returning the next URL for parsing.
+     * Method for returning the next URL for parsing.
      * It also ensures that Duplicate URLs are not allowed.
      * @return
+     *   - next unvisited URL or null
      */
     
  	private String nextUrl()
@@ -69,7 +78,7 @@ public class Browser {
     
  	
  	/**
- 	 * Method to delete existing directory.
+ 	 * Method for cleaning existing directory structure.
  	 */
  	
     private void cleanDirectory()
@@ -88,84 +97,135 @@ public class Browser {
    
     
     /**
-     * A function to perform searching/parsing of the web document.
+     * Method for performing searching/parsing of the HTML page.   
      * @param url
-     *         - The URL of the web page for parsing.
+     * - The URL of the HTML page for parsing.
      * @param searchWord
-     *         - The word to be searched.
+     * - Search String for parsing.
+     * @param isRestore
+     * - is restored from last run
+     * @throws Exception
      */
     
-    public void search(String url, String searchWord)
+    public void search(String url, String searchWord, boolean isRestore) throws Exception
     {
     	
     	do
     	{
-    		String currentUrl;
+    		//String currentUrl;
+    		
     		Crawler pageCrawler = new Crawler();
     		
     		if(this.pagesToVisit.isEmpty())
     		{
-      			currentUrl = url;
+      			this.currentUrl = url;
     			this.pagesVisited.add(url);
     		}
     		else
     		{
-    			currentUrl = this.nextUrl();
-    			if(currentUrl!=null)
+    			if(!isRestore){
+    			  this.currentUrl = this.nextUrl();
+    			}
+    			else
+    			{
+    				isRestore = false;
+    			}
+    			if(this.currentUrl!=null)
     			{
     				Crawler mailCrawler = new Crawler();
-    				String path = makeDirectory(currentUrl);
-    				mailCrawler.retrieveLinks(currentUrl);
-    				this.emailLinks.addAll(mailCrawler.getLinks());
-    				writeEmails(path);
+    				this.path = makeDirectory(this.currentUrl);
+    				mailCrawler.retrieveLinks(this.currentUrl); //point 1
+    				append(this.emailLinks, mailCrawler.getLinks());
+    				writeEmails(this.path); //point 2
     			}
     		}
     		if(currentUrl!= null)
     		{
-    			pageCrawler.crawl(currentUrl, searchWord);
-    			this.pagesToVisit.addAll(pageCrawler.getLinks());
+    			pageCrawler.crawl(currentUrl, searchWord); //point 3
+    			append(this.pagesToVisit, pageCrawler.getLinks());
  		    }
       		
     	}while(!(this.pagesToVisit.isEmpty()));
     }
     
     /**
+     * 
+     * @param list
+     * @param hyperLinks
+     */
+    public void append(List<String> list, List<String> hyperLinks)
+    {
+    	for(String link : hyperLinks)
+    	{
+    		if(list.isEmpty() || !list.contains(link))
+    			list.add(link);
+    	}
+    }
+    
+    /**
+     * 
+     * @return
+     * @throws Exception
+     */
+    public boolean isCrawlingRequired() throws Exception
+    {
+    	if(!this.emailLinks.isEmpty())
+    	{
+    		writeEmails(path);
+    	    return false;
+    	}
+    	return true;
+    }
+    
+    /**
      * Method to write all emails to separate files based on the links present on current HTML webpage. 
-     * @param dirPath - The path of the directory where the file will be placed.
+     * @param dirPath - The path of the directory where the file will be located.
      */
     
-    private void writeEmails(String dirPath)
+    private void writeEmails(String dirPath) throws Exception
     {
     	
-    	int count = new File(dirPath).listFiles().length;    	
+    	int count = new File(dirPath).listFiles().length + 1;  
+    	File emailPath = new File(dirPath+separator+"email#"+count+".txt");
     	while(!this.emailLinks.isEmpty())
         {
-    		count++;
+    		
     		try{
-    	    File emailText = new File(dirPath+separator+"email#"+count+".txt");
-    	    emailText.createNewFile();
-    	    if(emailText.isFile())
-    	    {
-    	    	
-    	    	BufferedWriter writer = new BufferedWriter(new FileWriter(emailText));
-    	    	writer.write(downloadPage(this.emailLinks.remove(0)));
-    	    	writer.close();
-    	    }
     	    
-    	   }
-    	  catch(Exception e)
+    	    if(!emailPath.exists())
+    	    {
+    	     emailPath.createNewFile();
+    	     if(emailPath.isFile())
+    	     {
+    	    	
+    	    	BufferedWriter writer = new BufferedWriter(new FileWriter(emailPath));
+    	    	writer.write(downloadPage(this.emailLinks.get(0)));//point 4
+    	    	this.emailLinks.remove(0);
+    	    	writer.close();
+    	     } 
+    	    }
+    	    else
+    	    {
+    	   	this.emailLinks.remove(0);
+    	     }
+    	    count++;
+    	    emailPath = new File(dirPath+separator+"email#"+count+".txt");
+    	 }
+    	 catch(Exception e)
     	  {
-    		System.out.println("IO Exception while creating File");
-    		e.printStackTrace();
+    		emailPath.delete();
+    		throw e;
+    		 //System.out.println("IO Exception while creating File");
+    		//e.printStackTrace();
     	  }
     		
     	}	
     }
     
     /**
-     * A method to make relevant directories organized Month wise.
-     * @param pageName: Path for the Directory to write.
-     * @return Absolute Path of the Directory.
+     * A method for creating relevant directories organized month-wise.
+     * @param pageName: String containing the URL from which month details are retrieved.
+     * @return Absolute Path of the created Directory.
      */
     
     private String makeDirectory(String pageName)
@@ -181,15 +241,15 @@ public class Browser {
     }
     
     /**
-     * Method to download the E-mail text 
-     * @param url - url of email
-     * @return the E-mail text.
+     * Method for downloading the E-mail text 
+     * @param url - String containing the hyperlink for the email HTML page.
+     * @return returns the email text.
      */
     
-     private String downloadPage(String url)
+     private String downloadPage(String url) throws Exception
      {
-    	 try
-    	 {	 
+    	// try
+    	// {	 
     		 Document email = Jsoup.connect(url).get();
     		 Elements preText = email.select("pre");
     		 StringBuffer pageBuffer = new StringBuffer(); 
@@ -203,13 +263,14 @@ public class Browser {
     		 
     		 
     	 }
-    	 catch(Exception e)
+    	/* catch(Exception e)
     	 {
     		 System.out.println("Error while downloading");
     		 e.printStackTrace();
     		 
+    		 
     	 }
     	 return null;
-     }
+     }*/
     
 }
